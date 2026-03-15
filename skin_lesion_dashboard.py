@@ -233,8 +233,6 @@ def render_img_stats(img, file):
 with st.sidebar:
     st.markdown("""
     <div style="padding:.4rem 0 1.6rem">
-      <div style="font-family:'Syne',sans-serif;font-size:1.5rem;font-weight:800;color:#e8e2d8;letter-spacing:-.02em">Skin Lesion Classifier</div>
-      <div style="font-size:.67rem;color:#3d4a6a;letter-spacing:.15em;text-transform:uppercase;margin-top:2px"> BAU 2026 Capstone Project</div>
     </div>""", unsafe_allow_html=True)
 
     st.markdown('<div class="lbl">Model File</div>', unsafe_allow_html=True)
