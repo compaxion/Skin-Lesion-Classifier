@@ -42,7 +42,7 @@ MALIGNANT_IDX = [0, 1, 4]   # akiec, bcc, mel
 # PAGE CONFIG
 # ──────────────────────────────────────────────────────────────
 st.set_page_config(
-    page_title="DermAI · Skin Lesion Classifier",
+    page_title="Skin Lesion Classifier",
     page_icon="🔬",
     layout="wide",
     initial_sidebar_state="expanded",
@@ -73,7 +73,10 @@ st.markdown("""
 html,body,[class*="css"]         { font-family:var(--fb); color:var(--txt); }
 .stApp                           { background:var(--bg); }
 [data-testid="stSidebar"]        { background:var(--sur)!important; border-right:1px solid var(--bdr)!important; }
-[data-testid="stSidebar"] *      { font-family:var(--fb)!important; }
+[data-testid="stSidebar"] *:not(span) { font-family:var(--fb)!important; }
+[data-testid="stSidebarCollapseIcon"] {
+    font-family: 'Material Icons' !important;
+}
 .stButton>button                 { background:var(--acc)!important; color:#fff!important; border:none!important; border-radius:8px!important; font-family:var(--fb)!important; font-weight:500!important; letter-spacing:.03em!important; padding:.58rem 1.8rem!important; transition:filter .18s!important; }
 .stButton>button:hover           { filter:brightness(1.15)!important; }
 .stTabs [data-baseweb="tab-list"]{ gap:.2rem; border-bottom:1px solid var(--bdr)!important; }
@@ -233,6 +236,8 @@ def render_img_stats(img, file):
 with st.sidebar:
     st.markdown("""
     <div style="padding:.4rem 0 1.6rem">
+      <div style="font-family:'Syne',sans-serif;font-size:1.5rem;font-weight:800;color:#e8e2d8;letter-spacing:-.02em">Skin Lesion Classifier</div>
+      <div style="font-size:.67rem;color:#3d4a6a;letter-spacing:.15em;text-transform:uppercase;margin-top:2px">BAU 2026 Capstone Project</div>
     </div>""", unsafe_allow_html=True)
 
     st.markdown('<div class="lbl">Model File</div>', unsafe_allow_html=True)
@@ -295,7 +300,7 @@ st.markdown("""
 # TABS
 # ──────────────────────────────────────────────────────────────
 t1, t2, t3, t4, t5 = st.tabs(
-    ["🔬  Analyze", "📊  Metrics & Trade-offs", "🧠  Model Docs", "🗂  Class Guide", "ℹ  About"]
+    ["Analyze", "Metrics & Trade-offs", "Model Docs", "Class Guide", "ℹ  About"]
 )
 
 
@@ -318,7 +323,7 @@ with t1:
         else:
             st.markdown("""
             <div class="card" style="text-align:center;padding:3.5rem 1rem">
-              <div style="font-size:2.8rem;margin-bottom:.9rem">🩺</div>
+              <div style="font-size:2.8rem;margin-bottom:.9rem"></div>
               <div style="font-family:'Syne',sans-serif;font-size:1.05rem;color:#3d4a6a">
                 Upload a dermoscopic image<br>to begin analysis
               </div>
@@ -341,7 +346,7 @@ with t1:
                     model, ok = load_model(model_path)
                     if ok:
                         probs     = predict(model, preprocess(image))
-                        src_label = f"✅ Loaded: {model_path}"
+                        src_label = f"Loaded: {model_path}"
                     else:
                         st.error(f"Could not load **{model_path}**. Enable Demo mode or fix the path.", icon="🚨")
                         st.stop()
@@ -372,7 +377,7 @@ with t1:
         elif not uploaded:
             st.markdown("""
             <div class="card" style="text-align:center;padding:4rem 1rem">
-              <div style="font-size:2rem;margin-bottom:.7rem">📈</div>
+              <div style="font-size:2rem;margin-bottom:.7rem"></div>
               <div style="color:#3d4a6a;font-size:.88rem">Analysis results will appear here</div>
             </div>""", unsafe_allow_html=True)
 
@@ -533,7 +538,7 @@ with t4:
             <span style="font-family:'JetBrains Mono',monospace;font-size:.7rem;color:var(--mut)">[{cls['code']}]</span>
             <span style="font-size:.72rem;color:var(--mut);margin-left:auto">HAM10000: {freq}</span>
           </div>
-          <div style="font-size:.8rem;color:#6b7a9f;margin-bottom:.3rem">📍 {site}</div>
+          <div style="font-size:.8rem;color:#6b7a9f;margin-bottom:.3rem">{site}</div>
           <div style="font-size:.83rem;color:#9ca3af;line-height:1.65">{desc}</div>
         </div>""", unsafe_allow_html=True)
 
