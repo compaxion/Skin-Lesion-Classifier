@@ -51,15 +51,24 @@ classifier UI — it only handles authentication and then calls
 
 ## Installation & Usage
 
-1. **Install Dependencies**
+1. **Clone the Repository:**
+This project uses Git LFS for large files. Make sure you have Git LFS installed on your system before cloning.
+
+    ```bash
+    git clone https://github.com/compaxion/Skin-Lesion-Classifier.git
+    cd <project_folder>
+    git lfs install
+    git lfs pull
+    ```
+2. **Install Dependencies**
    ```bash
    pip install -r requirements.txt
    ```
-2. **Run the Application**
+3. **Run the Application**
    ```bash
    streamlit run app.py
    ```
-3. On first launch, click the **Register** tab, create an account, and you'll be logged in automatically.
+4. On first launch, click the **Register** tab, create an account, and you'll be logged in automatically.
 
 ## Database Schema
 
