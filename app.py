@@ -1,94 +1,125 @@
-import streamlit as st
-import tensorflow as tf
-import numpy as np
-import pandas as pd
-from PIL import Image
+"""
+app.py
+──────
+Single Streamlit entry point.
 
+Flow:
+  * page_config + global CSS injected ONCE here
+  * DB bootstrapped
+  * If not logged in -> auth screen and stop
+  * Once authenticated -> render_dashboard(user) takes over the page,
+    sidebar (incl. logout), and all tabs (incl. History).
+"""
+
+from __future__ import annotations
+
+import streamlit as st
+
+from auth import AuthError, authenticate_user, register_user
+from db import init_db
+from skin_lesion_dashboard import inject_css, render_dashboard
+
+# Page config — MUST be the first Streamlit call, exactly once
 st.set_page_config(
-    page_title="Skin Lesion Diagnosis",
-    layout="centered"
+    page_title="Skin Lesion Classifier",
+    page_icon="🔬",
+    layout="wide",
+    initial_sidebar_state="expanded",
 )
 
-@st.cache_resource
-def load_model():
-    return tf.keras.models.load_model('skin_cancer_model_v1.keras')
+# Shared theme CSS — applied to both the login screen and the dashboard
+inject_css()
 
-with st.spinner('Loading model..'):
-    model = load_model()
+# Bootstrap DB (idempotent)
+init_db()
 
-classes = {
-    0: 'Actinic keratosis (Pre-cancer)',
-    1: 'Basal cell carcinoma (Cancer)',
-    2: 'Benign keratosis (Benign)',
-    3: 'Dermatofibroma (Benign)',
-    4: 'Melanoma (DANGEROUS Cancer)',
-    5: 'Melanocytic nevi (Mole)',
-    6: 'Vascular lesion (Benign)'
-}
+# Session defaults
+if "user" not in st.session_state:
+    st.session_state.user = None
 
-st.markdown("""
-    <style>
-        .stButton>button {width: 100%;}
-        .stAlert {text-align: center;}
-        div[data-testid="stImage"] {display: block; margin-left: auto; margin-right: auto;}
-    </style>
-""", unsafe_allow_html=True)
 
-st.title("Skin Lesion Diagnosis App")
-st.markdown("---")
+# ════════════════════════════════════════════════════════════════════════
+# UNAUTHENTICATED VIEW
+# ════════════════════════════════════════════════════════════════════════
+def render_auth_screen() -> None:
+    st.markdown(
+        """
+        <div style="padding:.5rem 0 .2rem">
+          <span style="font-family:'Syne',sans-serif;font-size:2.5rem;font-weight:800;
+                       letter-spacing:-.03em;color:#541A1A">Skin Lesion Analysis</span>
+        </div>
+        <div style="font-size:.78rem;color:#8b4a4a;letter-spacing:.1em;text-transform:uppercase;
+                    margin-bottom:1.4rem">
+          Secure Access &nbsp;·&nbsp; Capstone 2026 &nbsp;·&nbsp; Bahçeşehir University
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
-# upload section
-st.subheader("1. Upload Image")
-uploaded_file = st.file_uploader("Choose a dermoscopic image..", type=["jpg", "png", "jpeg"])
+    # Narrow, centred auth card on the wide layout
+    _, mid, _ = st.columns([1, 1.4, 1])
+    with mid:
+        tab_login, tab_register = st.tabs(["Login", "Register"])
 
-if uploaded_file is not None:
-    image = Image.open(uploaded_file).convert('RGB')
+        with tab_login:
+            with st.form("login_form"):
+                username = st.text_input("Username", key="login_username")
+                password = st.text_input("Password", type="password", key="login_password")
+                if st.form_submit_button("Login", use_container_width=True):
+                    try:
+                        user = authenticate_user(username, password)
+                    except AuthError as exc:
+                        st.error(str(exc))
+                    else:
+                        st.session_state.user = user
+                        st.rerun()
 
-    st.image(image, caption='Patient Image', use_container_width=True)
+        with tab_register:
+            with st.form("register_form"):
+                new_username = st.text_input(
+                    "Username",
+                    help="3–32 chars: letters, digits, underscores.",
+                    key="reg_username",
+                )
+                new_password = st.text_input(
+                    "Password",
+                    type="password",
+                    help="Minimum 8 characters.",
+                    key="reg_password",
+                )
+                confirm = st.text_input(
+                    "Confirm password",
+                    type="password",
+                    key="reg_password_confirm",
+                )
+                if st.form_submit_button("Create account", use_container_width=True):
+                    try:
+                        uid = register_user(new_username, new_password, confirm)
+                    except AuthError as exc:
+                        st.error(str(exc))
+                    else:
+                        st.session_state.user = {"id": uid, "username": new_username.strip()}
+                        st.rerun()
 
-    img_resized = image.resize((128, 128))
-    img_array = np.array(img_resized)
-    img_batch = np.expand_dims(img_array, axis=0)
+        st.markdown(
+            """
+            <div class="disc" style="margin-top:1.2rem">
+              <strong>⚠ Disclaimer:</strong> Educational and research use only.
+              Not a medical device. Always consult a qualified dermatologist.
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
 
-    # predict
-    with st.spinner("Analyzing.."):
-        predictions = model.predict(img_batch)
 
-    score = np.max(predictions) * 100
-    predicted_class = classes[np.argmax(predictions)]
-
-    # results section
-    st.markdown("---")
-    st.subheader("2. Analysis Results")
-
-    if "Cancer" in predicted_class or "Melanoma" in predicted_class or "Carcinoma" in predicted_class:
-        st.error(f"Error **Diagnosis:** {predicted_class}")
+# ════════════════════════════════════════════════════════════════════════
+# ROUTER
+# ════════════════════════════════════════════════════════════════════════
+def main() -> None:
+    if st.session_state.user is None:
+        render_auth_screen()
     else:
-        st.success(f"Success **Diagnosis:** {predicted_class}")
+        render_dashboard(st.session_state.user)
 
-    col_centered, _ = st.columns([1, 0.1])
-    with col_centered:
-        st.metric("Confidence Level", f"{score:.2f}%")
 
-    # detail section
-    st.markdown("---")
-    st.subheader("3. Detailed Probabilities")
-
-    probs = predictions[0]
-
-    table_data = []
-    for i in range(7):
-        table_data.append({
-            "Diagnosis": classes[i],
-            "Probability": f"{probs[i] * 100:.2f}%",
-            "Score": probs[i] * 100
-        })
-
-    df = pd.DataFrame(table_data)
-    df = df.sort_values(by="Score", ascending=False).reset_index(drop=True)
-
-    # Show Table
-    st.table(df[["Diagnosis", "Probability"]])
-
-    # Show Chart
-    st.bar_chart(df.set_index("Diagnosis")["Score"])
+main()
