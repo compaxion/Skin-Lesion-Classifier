@@ -1,6 +1,6 @@
 # Skin Lesion Classification Dashboard — with Authentication
 
-A Streamlit dashboard for skin-lesion classification that uses a trained Keras model to predict the lesion type from a dermoscopic image. This version adds a SQLite-backed authentication layer and per-user upload history.
+A Streamlit dashboard for skin-lesion classification that uses a trained Keras multi-modal model (EfficientNetB2 + patient metadata) to predict the lesion type from a dermoscopic image. This version adds a SQLite-backed authentication layer and per-user upload history.
 
 ## Features
 
@@ -32,7 +32,7 @@ The model predicts the following 7 classes:
 ├── skin_lesion_dashboard.py   # THE dashboard — 6 tabs incl. My History
 ├── history.py                 # history-tab renderer (called from the dashboard)
 ├── requirements.txt
-├── skin_cancer_model_v1.keras
+├── best_skin_model.keras          # EfficientNetB2 multi-modal model
 └── data/                      # created on first run (gitignored)
     ├── app.db                 # SQLite database
     └── uploads/{user_id}/{uuid}.{ext}
@@ -95,4 +95,6 @@ predictions (
 ## Notes
 
 - The dashboard's **Demo mode** (sidebar) produces simulated output when the `.keras` model is absent. Demo results are intentionally **not** saved to history — only real model inferences are persisted.
-- Inference uses the notebook's exact preprocessing: resize to 128×128, then normalize `/255.0`.
+- **Inference Pipeline:** The model uses a multi-branch architecture:
+  - **Image:** Resized to 224×224 RGB, converted to float32 (no `/255.0` normalization).
+  - **Metadata:** Age (float), Sex (string), and Localization (string).

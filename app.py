@@ -1,14 +1,6 @@
 """
 app.py
-──────
-Single Streamlit entry point.
-
-Flow:
-  * page_config + global CSS injected ONCE here
-  * DB bootstrapped
-  * If not logged in -> auth screen and stop
-  * Once authenticated -> render_dashboard(user) takes over the page,
-    sidebar (incl. logout), and all tabs (incl. History).
+Entry point for Streamlit application.
 """
 
 from __future__ import annotations
@@ -19,7 +11,7 @@ from auth import AuthError, authenticate_user, register_user
 from db import init_db
 from skin_lesion_dashboard import inject_css, render_dashboard
 
-# Page config — MUST be the first Streamlit call, exactly once
+# Initialize page config
 st.set_page_config(
     page_title="Skin Lesion Classifier",
     page_icon="🔬",
@@ -27,20 +19,17 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# Shared theme CSS — applied to both the login screen and the dashboard
+# Inject global CSS
 inject_css()
 
-# Bootstrap DB (idempotent)
+# Initialize database
 init_db()
 
-# Session defaults
+# Setup session state
 if "user" not in st.session_state:
     st.session_state.user = None
 
-
-# ════════════════════════════════════════════════════════════════════════
-# UNAUTHENTICATED VIEW
-# ════════════════════════════════════════════════════════════════════════
+# Auth UI
 def render_auth_screen() -> None:
     st.markdown(
         """
@@ -56,7 +45,7 @@ def render_auth_screen() -> None:
         unsafe_allow_html=True,
     )
 
-    # Narrow, centred auth card on the wide layout
+    # Center auth card
     _, mid, _ = st.columns([1, 1.4, 1])
     with mid:
         tab_login, tab_register = st.tabs(["Login", "Register"])
@@ -111,15 +100,11 @@ def render_auth_screen() -> None:
             unsafe_allow_html=True,
         )
 
-
-# ════════════════════════════════════════════════════════════════════════
-# ROUTER
-# ════════════════════════════════════════════════════════════════════════
+# Main router
 def main() -> None:
     if st.session_state.user is None:
         render_auth_screen()
     else:
         render_dashboard(st.session_state.user)
-
 
 main()

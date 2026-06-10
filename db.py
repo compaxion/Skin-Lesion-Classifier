@@ -1,19 +1,7 @@
 """
 db.py
-─────
-SQLite layer for the Skin Lesion Classifier app.
-
-Responsibilities:
-  • Locate / create the database file and the user-uploads directory.
-  • Provide a context-managed connection that auto-commits on success
-    and auto-rollbacks on error.
-  • Enforce foreign keys (off by default in SQLite — must be turned on
-    per connection).
-  • Define the schema for `users` and `predictions`.
-
-Nothing in this module touches Streamlit. Keeping the data layer
-framework-agnostic means it can be reused by tests, scripts, or a
-future FastAPI/Flask version of the app.
+SQLite data layer.
+Handles connections, schema, and queries.
 """
 
 from __future__ import annotations
@@ -23,10 +11,7 @@ from contextlib import contextmanager
 from pathlib import Path
 from typing import Iterator
 
-# ── Paths ────────────────────────────────────────────────────────────────
-# We anchor everything to this file's directory so the app works no matter
-# where it's launched from (a common foot-gun: relative paths break the
-# moment the user runs `streamlit run` from a different cwd).
+# Paths
 BASE_DIR     = Path(__file__).resolve().parent
 DATA_DIR     = BASE_DIR / "data"
 UPLOADS_DIR  = DATA_DIR / "uploads"
@@ -34,25 +19,14 @@ DB_PATH      = DATA_DIR / "app.db"
 
 
 def _ensure_dirs() -> None:
-    """Make sure `data/` and `data/uploads/` exist before we touch the DB."""
+    """Ensure data directories exist."""
     DATA_DIR.mkdir(parents=True, exist_ok=True)
     UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
 
 
 @contextmanager
 def get_connection() -> Iterator[sqlite3.Connection]:
-    """
-    Context-managed SQLite connection.
-
-    Usage:
-        with get_connection() as conn:
-            conn.execute("INSERT INTO ...")
-
-    Guarantees:
-      • Foreign keys are enforced (`PRAGMA foreign_keys = ON`).
-      • Rows behave like dicts (`row["username"]`) via sqlite3.Row.
-      • Commit on clean exit, rollback on exception, always close.
-    """
+    """Provide a context-managed SQLite connection."""
     _ensure_dirs()
     conn = sqlite3.connect(DB_PATH, detect_types=sqlite3.PARSE_DECLTYPES)
     conn.row_factory = sqlite3.Row
@@ -68,23 +42,7 @@ def get_connection() -> Iterator[sqlite3.Connection]:
 
 
 def init_db() -> None:
-    """
-    Create tables if they don't exist. Idempotent — safe to call on every
-    app startup.
-
-    Schema notes:
-      • `users.username` is UNIQUE + COLLATE NOCASE so "Alice" and "alice"
-        cannot both register. We don't want two accounts that look
-        identical to a human eye.
-      • `users.password_hash` is the bcrypt output (a string that
-        embeds the algorithm + cost + salt + digest). NEVER store
-        plaintext passwords here.
-      • `predictions.user_id` has ON DELETE CASCADE so removing a user
-        also removes their history rows — no dangling foreign keys.
-      • The composite index on (user_id, created_at DESC) makes the
-        "show me my history newest-first" query O(log N) instead of a
-        full table scan.
-    """
+    """Initialize database tables."""
     _ensure_dirs()
     with get_connection() as conn:
         conn.executescript(
@@ -114,10 +72,7 @@ def init_db() -> None:
         )
 
 
-# ── Query helpers ────────────────────────────────────────────────────────
-# Kept here (not in auth.py / classifier.py) so the SQL lives in one place.
-# Every query uses parameter substitution (`?`) — never f-string
-# interpolation — to prevent SQL injection.
+# Query helpers
 
 def insert_prediction(
     user_id: int,
@@ -127,7 +82,7 @@ def insert_prediction(
     confidence: float,
     probabilities_json: str,
 ) -> int:
-    """Store one prediction row. Returns the new row id."""
+    """Insert a prediction record."""
     with get_connection() as conn:
         cur = conn.execute(
             """
@@ -143,7 +98,7 @@ def insert_prediction(
 
 
 def list_predictions_for_user(user_id: int, limit: int = 100) -> list[sqlite3.Row]:
-    """Return the user's predictions, newest first."""
+    """Get user's predictions."""
     with get_connection() as conn:
         return conn.execute(
             """
@@ -160,11 +115,7 @@ def list_predictions_for_user(user_id: int, limit: int = 100) -> list[sqlite3.Ro
 
 
 def get_prediction(user_id: int, prediction_id: int) -> sqlite3.Row | None:
-    """
-    Look up a single prediction, but ONLY if it belongs to `user_id`.
-    The WHERE user_id check is mandatory — without it, a logged-in user
-    could view another user's history by guessing IDs (IDOR vulnerability).
-    """
+    """Get a specific prediction for a user."""
     with get_connection() as conn:
         return conn.execute(
             """
@@ -179,11 +130,7 @@ def get_prediction(user_id: int, prediction_id: int) -> sqlite3.Row | None:
 
 
 def delete_prediction(user_id: int, prediction_id: int) -> bool:
-    """
-    Delete one of the user's own prediction rows. Returns True if a row
-    was deleted. The (user_id, id) filter again prevents cross-user
-    deletion.
-    """
+    """Delete a prediction record."""
     with get_connection() as conn:
         cur = conn.execute(
             "DELETE FROM predictions WHERE user_id = ? AND id = ?",

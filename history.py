@@ -1,8 +1,6 @@
 """
 history.py
-──────────
-Renders the logged-in user's prediction history. Every query is scoped
-to `user_id` so a user can only ever see their own rows.
+Renders user prediction history.
 """
 
 from __future__ import annotations
@@ -28,7 +26,7 @@ def render_history_page(user: dict) -> None:
                 "from the **Classifier** page and it will appear here.")
         return
 
-    # ── Summary table ────────────────────────────────────────────────────
+    # Build summary table
     summary = pd.DataFrame(
         [
             {
@@ -41,7 +39,8 @@ def render_history_page(user: dict) -> None:
             for r in rows
         ]
     )
-    st.dataframe(summary, use_container_width=True, hide_index=True)
+    st.markdown(summary.to_html(index=False, escape=True, classes="themed-table"),
+                unsafe_allow_html=True)
 
     st.markdown("---")
     st.subheader("Inspect a record")
@@ -54,9 +53,7 @@ def render_history_page(user: dict) -> None:
         key="history_selector",
     )
 
-    # Re-query through `get_prediction` so the user_id filter is enforced
-    # on the read path too. Belt and braces — never trust that the list
-    # query above is the only thing protecting us.
+    # Re-query to enforce user_id filter
     record = get_prediction(user["id"], selected_id)
     if record is None:
         st.error("Record not found.")
@@ -87,19 +84,19 @@ def render_history_page(user: dict) -> None:
                 .reset_index(drop=True)
             )
             prob_df["Probability"] = prob_df["Probability"].map(lambda x: f"{x:.2f}%")
-            st.table(prob_df)
+            st.markdown(prob_df.to_html(index=False, escape=True, classes="themed-table"),
+                        unsafe_allow_html=True)
         except (json.JSONDecodeError, TypeError):
             st.caption("Stored probabilities are unreadable.")
 
-    # ── Destructive action — confirm before delete ───────────────────────
+    # Delete confirmation
     st.markdown("---")
     with st.expander("Delete this record"):
         st.warning("This will permanently remove the record and the "
                    "stored image file. This cannot be undone.")
         confirm = st.checkbox("Yes, I'm sure.", key=f"confirm_del_{selected_id}")
         if st.button("Delete record", disabled=not confirm, key=f"del_btn_{selected_id}"):
-            # Remove the file first; if that fails we still try to remove
-            # the row so we don't leave an orphan pointer.
+            # Remove image file, then DB record
             try:
                 image_path = Path(record["image_path"])
                 if image_path.is_file():
