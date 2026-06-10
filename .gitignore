@@ -1,0 +1,15 @@
+# Runtime data — never commit user data or the DB
+data/
+*.db
+*.db-journal
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+
+# OS
+.DS_Store
+Thumbs.db
