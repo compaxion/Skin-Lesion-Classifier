@@ -562,7 +562,7 @@ def render_dashboard(user):
             with col:
                 st.metric(name, val, delta)
 
-        st.markdown("<br><div class='lbl'>Multi-Objective Pareto Analysis (WP4)</div>",
+        st.markdown("<br><div class='lbl'>Multi-Objective Pareto Analysis</div>",
                     unsafe_allow_html=True)
         tradeoff = pd.DataFrame({
             "Model":           ["Custom CNN v1 (Baseline)", "EfficientNetB2 (Single-modal)", "EfficientNetB2 (Multi-modal + Focal) ★"],
@@ -757,13 +757,14 @@ def render_dashboard(user):
             <div class="card">
               <div class="lbl">Work Packages</div>
               <table class="itbl">
-                <tr><td>WP1 (Wk 1–2)</td><td>Setup, dataset access, metric definition</td></tr>
-                <tr><td>WP2 (Wk 3–5)</td><td>Preprocessing, baseline CNN training</td></tr>
-                <tr><td>WP3 (Wk 6–7)</td><td>ResNet / EfficientNet transfer learning</td></tr>
-                <tr><td>WP4 (Wk 8–9)</td><td>Hyperparameter optimization (IE stream)</td></tr>
-                <tr><td>WP5 (Wk 10–11)</td><td>Uncertainty, robustness, calibration</td></tr>
-                <tr><td>WP6 (Wk 12–13)</td><td>Dashboard ← <b style="color:#810B38">this file</b></td></tr>
-                <tr><td>WP7 (Wk 14–15)</td><td>Final report &amp; presentation</td></tr>
+                <tr><td>WP1</td><td>Literature Review, Problem Definition</td></tr>
+                <tr><td>WP2</td><td>HAM10000 Dataset Collection and Understanding</td></tr>
+                <tr><td>WP3</td><td>Data Preprocessing and Exploratory Data Analysis</td></tr>
+                <tr><td>WP4</td><td>CNN & Transfer Learning Model Development</td></tr>
+                <tr><td>WP5</td><td>Hyperparameter Optimization (Optuna)</td></tr>
+                <tr><td>WP6</td><td>Uncertainty, Robustness, Calibration and Dashboard</td></tr>
+                <tr><td>WP7</td><td>Model Evaluation</td></tr>
+                <tr><td>WP8</td><td>Report Writing, Documentation and Final Presentation</td></tr>
               </table>
             </div>""", unsafe_allow_html=True)
 
